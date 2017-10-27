@@ -1,5 +1,32 @@
 # ciphertools.py
 import math
+import string
+global LETTERS
+LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+def scoreText(str, bigrams=None, quadgrams=None):
+    # return log likelihood of string given either bigrams or quadgrams data
+
+
+    if bigrams is None and quadgrams is None:
+        raise ValueError("Either bigrams or quadgrams must be passed.")
+
+    str = string.upper(str)
+    str = "".join([i for i in str if i in LETTERS])
+    score = 0.
+    if quadgrams is not None:
+        for i in range(0, len(str)-4):
+            q = str[i:i+2], str[i+2:i+4]
+            
+            if q in quadgrams:
+                score += quadgrams[q]
+    elif bigrams is not None:
+        for i in range(0, len(str)-2):
+            b = str[i:i+2]
+            if b in bigrams:
+                score += bigrams[b]
+    return score
+
 
 def getScores( bigrams, quadgrams ):
     bout = {}
@@ -84,3 +111,5 @@ bw, qw = getScores("ngrams2.csv", "ngrams4.csv")
 
 sc = map(splitCipher,ciphers)
 links = map(createLinks, sc)
+print scoreText("The quick brown fox jumps over the lazy dog", bigrams = bw)
+print scoreText("The quick brown fox jumps over the lazy dog", quadgrams = qw)
