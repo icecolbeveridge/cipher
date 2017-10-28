@@ -2,7 +2,12 @@ from ciphertools import *
 from math import log, exp
 from random import random
 from string import replace
-global LW, RW, PROBS, ciphers, qw
+from itertools import product
+import sys
+global LW, RW, PROBS, ciphers, qw, LL, RL, allbigrams
+letters ="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+allbigrams = ["".join(i) for i in product(*[letters, letters])]
+
 LW = [6, 5, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 LL = ['QR', 'TM', 'NL', 'DU', 'DM', 'WB', 'TQ', 'SE', 'RY', 'RQ', 'RC', 'NR', 'BQ', 'BD', 'YK', 'YE', 'XR', 'UF', 'TW', 'TV', 'TL', 'SQ', 'SF', 'SD', 'RL', 'RI', 'RH', 'RF', 'RE', 'RD', 'RB', 'RA', 'QK', 'QB', 'PO', 'PD', 'NQ', 'NK', 'ND', 'MY', 'MN', 'ME', 'MD', 'LK', 'LE', 'LC', 'HW', 'HP', 'HL', 'GM', 'EQ', 'EO', 'EL', 'EK', 'ED', 'EC', 'DV', 'DR', 'DL', 'DE', 'DC', 'CW', 'CP', 'CO', 'CD', 'CB', 'BY', 'BT', 'BO', 'BH', 'AL']
 
@@ -51,8 +56,8 @@ def runSample():
         Q -= p
 
     return ll, rl
-def go():
-    ll, rl = runSample()
+    
+def decrypt(ll, rl):
     out = []
     for c in ciphers:
         cc = c
@@ -61,14 +66,58 @@ def go():
         for pt,ct in zip(rl, RL):
             cc = replace(cc, ct+" ",   pt.lower())
         out.append( (cc, scoreText(cc, quadgrams=qw) ))
-    return out
+    score = sum([i[1] for i in out])
+    return [i[0] for i in out], score
+
+    
+def hillClimb(ll, rl):
+    base = decrypt(ll, rl)
+    best = base[1], ll, rl
+    b0 = best[0]
+    # try swapping each element of ll in turn with every possible
+    # bigram
+    templl = [i for i in ll]
+    temprl = [i for i in rl]
+    for L, TL in [(ll, templl), (rl, temprl)]:
+        for i in L:
+            print "\b-",
+            sys.stdout.flush()
+            for j in allbigrams:
+                try:
+                    a, b = L.index(i), L.index(j)
+                    TL[a], TL[b] = j, i
+                except:
+                    a = L.index(i)
+                    b = None
+                    TL[a] = j
+                    nxt = decrypt(templl, temprl)
+                if nxt[1] > best[0]:
+                    best = nxt[1], [ii for ii in templl], [ii for ii in temprl]
+                TL[a] = i
+                if b is not None:
+                    TL[b] = j
+    print
+    b= decrypt(best[1], best[2])
+    print b[1]
+    print "\n".join(b[0])
+    print
+    return best, best[0] > b0        
+                
+def go():
+    ll, rl = runSample()
+    while True:
+        best, better = hillClimb(ll, rl)
+        if not better:
+            break
+        s, ll, rl = best
+    return decrypt(ll, rl)
     
 best = (None, -1)
 while True:         
     res = go()
-    score = sum([i[1] for i in res])
+    score = res[1]
     if score > best[1]:
-        best = ( [i[0] for i in res], score)
-        for b in best[0]:
-            print b
+        print "NEW RECORD:"
+        best = res
+        print "\n".join(best[0])
         print best[1]
